@@ -4,6 +4,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const {sign} = require("jsonwebtoken");
 const fs = require("fs");
+const {logger} = require("./logger.js");
 
 const PORT = 3000;
 const AUTHORIZATION = 'Authorization';
@@ -22,6 +23,8 @@ const users = [
         username: 'AXW123231',
     }
 ];
+
+logger.info('Hello, Winston!');
 
 const secretKey = getSecretKey();
 const app = express();
