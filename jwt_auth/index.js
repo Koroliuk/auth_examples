@@ -8,7 +8,7 @@ const {logger} = require("./logger.js");
 
 const PORT = 3000;
 const AUTHORIZATION = 'Authorization';
-const EXPiRES_IN = '2m';
+const EXPIRES_IN = '2m';
 const SECRET_KET_FILE_PATH = './key.txt';
 
 const users = [
@@ -24,7 +24,7 @@ const users = [
     }
 ];
 
-logger.info('Hello, Winston!');
+const loginHistory = {};
 
 const secretKey = getSecretKey();
 const app = express();
@@ -62,9 +62,14 @@ app.post('/api/login', (req, res) => {
         return user.login === login && user.password === password;
     });
 
-    if (user) {
+    const ip = req.socket.remoteAddress;
+    if (user && !checkIfBlocked(ip)) {
         const token = createSignedToken(user);
+        logger.info(`Successfully logged in, IP: ${ip}, user: ${user.login}`);
         res.json({token});
+    } else {
+        saveUnsuccessfulAttempt(ip);
+        logger.info(`Unsuccessful attempt to login as from IP: ${ip}`);
     }
 
     res.status(401).send();
@@ -72,8 +77,44 @@ app.post('/api/login', (req, res) => {
 
 
 app.listen(PORT, () => {
-    console.log(`Example app listening on port ${PORT}`);
+    logger.info(`Example app listening on port ${PORT}`);
 });
+
+function checkIfBlocked(ip) {
+    if ((ip in loginHistory) && loginHistory[ip].attempts.length > 1) {
+        if (loginHistory[ip].status === 'Blocked' && new Date() > loginHistory[ip].blockingEndTime) {
+            loginHistory[ip].status = 'Allowed';
+            return false;
+        }
+        logger.info(`Log in attempt is blocked for IP: ${ip}`);
+        return true;
+    }
+    return false;
+}
+
+function saveUnsuccessfulAttempt(ip) {
+    if (!(ip in loginHistory)) {
+        loginHistory[ip] = {
+            status: 'Allowed',
+            attempts: []
+        };
+    }
+
+    if (!(loginHistory[ip].status === 'Blocked')) {
+        loginHistory[ip].attempts.push(new Date());
+    }
+
+    if (loginHistory[ip].attempts.length > 1) {
+        const curr = loginHistory[ip].attempts.at(-1);
+        const prev = loginHistory[ip].attempts.at(-2);
+        if ((curr.getTime() - prev.getTime()) / 1000 / 60 < 5000 && loginHistory[ip].status === 'Allowed') {
+            loginHistory[ip].status = 'Blocked';
+            loginHistory[ip].blockingEndTime = new Date(new Date().getTime()+2*60*1000);
+            logger.info(`2 unsuccessful log in attempts in 5 minutes for IP: ${ip}. Block time 2 min.\n
+             Further login attempts before the lockout time expires will be ignored`);
+        }
+    }
+}
 
 function getSecretKey() {
     return fs.readFileSync(SECRET_KET_FILE_PATH);
@@ -89,7 +130,7 @@ function validateAndGetPayload(token) {
 
 function createSignedToken(user) {
     const payload = {login: user.login};
-    return sign(payload, secretKey, {expiresIn: EXPiRES_IN});
+    return sign(payload, secretKey, {expiresIn: EXPIRES_IN});
 }
 
 function getUsername(login) {
