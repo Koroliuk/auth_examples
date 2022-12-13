@@ -10,6 +10,7 @@ const PORT = 3000;
 const AUTHORIZATION = 'Authorization';
 const EXPIRES_IN = '2m';
 const SECRET_KET_FILE_PATH = './key.txt';
+const BLOCKING_TIME = 2 * 60 * 1000;
 
 const users = [
     {
@@ -109,7 +110,7 @@ function saveUnsuccessfulAttempt(ip) {
         const prev = loginHistory[ip].attempts.at(-2);
         if ((curr.getTime() - prev.getTime()) / 1000 / 60 < 5000 && loginHistory[ip].status === 'Allowed') {
             loginHistory[ip].status = 'Blocked';
-            loginHistory[ip].blockingEndTime = new Date(new Date().getTime()+2*60*1000);
+            loginHistory[ip].blockingEndTime = new Date(new Date().getTime()+BLOCKING_TIME);
             logger.info(`2 unsuccessful log in attempts in 5 minutes for IP: ${ip}. Block time 2 min.\n
              Further login attempts before the lockout time expires will be ignored`);
         }
