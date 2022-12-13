@@ -11,6 +11,7 @@ const AUTHORIZATION = 'Authorization';
 const EXPIRES_IN = '2m';
 const SECRET_KET_FILE_PATH = './key.txt';
 const BLOCKING_TIME = 2 * 60 * 1000;
+const TIME_RANGE_TO_CHECK = 5000;
 
 const users = [
     {
@@ -70,7 +71,7 @@ app.post('/api/login', (req, res) => {
         res.json({token});
     } else {
         saveUnsuccessfulAttempt(ip);
-        logger.info(`Unsuccessful attempt to login as from IP: ${ip}`);
+        logger.info(`Unsuccessful attempt to login from IP: ${ip}`);
     }
 
     res.status(401).send();
@@ -108,7 +109,7 @@ function saveUnsuccessfulAttempt(ip) {
     if (loginHistory[ip].attempts.length > 1) {
         const curr = loginHistory[ip].attempts.at(-1);
         const prev = loginHistory[ip].attempts.at(-2);
-        if ((curr.getTime() - prev.getTime()) / 1000 / 60 < 5000 && loginHistory[ip].status === 'Allowed') {
+        if ((curr.getTime() - prev.getTime()) / 1000 / 60 < TIME_RANGE_TO_CHECK && loginHistory[ip].status === 'Allowed') {
             loginHistory[ip].status = 'Blocked';
             loginHistory[ip].blockingEndTime = new Date(new Date().getTime()+BLOCKING_TIME);
             logger.info(`2 unsuccessful log in attempts in 5 minutes for IP: ${ip}. Block time 2 min.\n
