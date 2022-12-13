@@ -21,7 +21,7 @@ const users = [
     {
         login: 'Yaroslav',
         password: '1234',
-        username: 'AXW123231',
+        username: 'Yaroslav Koroliuk',
     }
 ];
 
