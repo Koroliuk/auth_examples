@@ -13,8 +13,8 @@ const options = { method: 'POST',
     },
     body:
         {
-            email: 'test.123.abc@xyz.com',
-            name: 'Test 123-ABC',
+            email: 'yaroslav.koroliuk.ip.94@gmail.com',
+            name: 'Yaroslav Koroliuk IP-94',
             connection: 'Username-Password-Authentication',
             password: 'qwerty123!!'
         },
