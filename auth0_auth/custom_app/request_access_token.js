@@ -1,20 +1,16 @@
-'use strict'
-
 const request = require("request");
+const fs = require('fs');
+const config = require("./config/config")
 
-const domain = 'dev-ciqz1vdq1irife3n.us.auth0.com';
-const clientId = 'mdfALuYL914gp5lqPsoOWaIgh8gtMyXq';
-const clientSecret = 'wRBB9kua92GDaDTNXsLPhUMSaKKwcu7UCYCtVvEIsVopLLBLGJzosBeWgAU-JEDx';
-const audience = 'https://dev-ciqz1vdq1irife3n.us.auth0.com/api/v2/';
-
-const options = { method: 'POST',
-    url: `https://${domain}/oauth/token`,
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+const options = {
+    method: 'POST',
+    url: `https://${config.domain}/oauth/token`,
+    headers: {'content-type': 'application/x-www-form-urlencoded'},
     form:
         {
-            client_id: `${clientId}`,
-            client_secret: `${clientSecret}`,
-            audience: `${audience}`,
+            client_id: `${config.clientId}`,
+            client_secret: `${config.clientSecret}`,
+            audience: `${config.audience}`,
             grant_type: 'client_credentials'
         }
 };
@@ -22,5 +18,11 @@ const options = { method: 'POST',
 request(options, function (error, response, body) {
     if (error) throw new Error(error);
 
+    saveToken(JSON.parse(body).access_token);
     console.log(body)
 });
+
+function saveToken(accessToken) {
+    const json = {token: accessToken}
+    fs.writeFileSync('./config/token.json', JSON.stringify(json), 'utf-8');
+}
