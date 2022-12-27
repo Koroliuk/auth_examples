@@ -1,7 +1,8 @@
 const request = require("request");
 const config = require("./config/config")
-const token = require('./utils/utils');
+const utils = require("./utils/utils");
 
+const token = utils.getToken();
 if (token !== undefined) {
     const options = { method: 'POST',
         url: `https://${config.domain}/api/v2/users`,

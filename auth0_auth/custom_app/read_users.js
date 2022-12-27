@@ -1,7 +1,8 @@
 const request = require("request");
 const config = require("./config/config")
-const token = require('./utils/utils');
+const utils = require('./utils/utils');
 
+const token = utils.getToken();
 if (token !== undefined) {
     const options = { method: 'GET',
         url: `https://${config.domain}/api/v2/users`,
@@ -13,7 +14,7 @@ if (token !== undefined) {
 
         const users = JSON.parse(body);
         for (let user of users) {
-            console.log(`${user.name} ${user.email}`)
+            console.log(user)
         }
     });
 } else {

@@ -1,8 +1,9 @@
 const request = require("request");
 const config = require("./config/config")
-const refreshToken = require('./utils/utils');
+const utils = require('./utils/utils');
 const fs = require("fs");
 
+const refreshToken = utils.getRefreshToken();
 if (refreshToken !== undefined) {
     const options = {
         method: 'POST',
