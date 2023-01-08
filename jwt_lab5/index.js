@@ -7,6 +7,7 @@ const {logger} = require("./logger.js");
 const request = require("request");
 const {auth} = require('express-oauth2-jwt-bearer');
 const {promisify} = require('util');
+const config = require("../auth0_auth/kpi/config/config");
 const promisifiedRequest = promisify(request);
 
 
@@ -144,6 +145,54 @@ app.post('/api/login', async (req, res) => {
     }
 
     return res.status(401).send();
+});
+
+app.get('/signup', (req, res) => {
+    res.sendFile(path.join(__dirname + '/signup.html'));
+});
+
+app.post('/api/signup', async (req, res) => {
+    const {login, password, name, nickname} = req.body;
+
+    const options = {
+        method: 'POST',
+        url: `https://dev-ciqz1vdq1irife3n.us.auth0.com/oauth/token`,
+        headers: {'content-type': 'application/x-www-form-urlencoded'},
+        form:
+            {
+                client_id: `mdfALuYL914gp5lqPsoOWaIgh8gtMyXq`,
+                client_secret: `wRBB9kua92GDaDTNXsLPhUMSaKKwcu7UCYCtVvEIsVopLLBLGJzosBeWgAU-JEDx`,
+                audience: `https://dev-ciqz1vdq1irife3n.us.auth0.com/api/v2/`,
+                grant_type: 'client_credentials'
+            }
+    };
+
+    const response = await promisifiedRequest(options);
+    const accessTokenClient = JSON.parse(response.body).access_token;
+
+    const options1 = {
+        method: 'POST',
+        url: `https://dev-ciqz1vdq1irife3n.us.auth0.com/api/v2/users`,
+        headers: {
+            'content-type': 'application/json',
+            'Authorization': `Bearer ${accessTokenClient}`
+        },
+        body: {
+            email: login,
+            name: name,
+            connection: 'Username-Password-Authentication',
+            password: password,
+            nickname : nickname
+        },
+        json: true
+    };
+
+    const response1 = await promisifiedRequest(options1);
+    if (response1.statusCode === 201) {
+        logger.info(`Successfully registered user with login ${login}`);
+        return res.json({redirect: '/'});
+    }
+    return res.status(500).send();
 });
 
 
