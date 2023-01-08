@@ -31,7 +31,7 @@ app.use(async (req, res, next) => {
     console.log();
     const payload = await verifyToken(token);
     if (payload) {
-        const tokenValidTimeInMsec = userSub2RefreshToken[payload.sub].expires_in - 4 * 60 * 60 * 1000;
+        const tokenValidTimeInMsec = userSub2RefreshToken[payload.sub].expires_in - 86350 * 1000;
         if (Date.now() >= tokenValidTimeInMsec) {
             const refresh_token = userSub2RefreshToken[payload.sub].refresh_token
             const options = {
@@ -45,7 +45,7 @@ app.use(async (req, res, next) => {
                     client_secret: `wRBB9kua92GDaDTNXsLPhUMSaKKwcu7UCYCtVvEIsVopLLBLGJzosBeWgAU-JEDx`
                 }
             };
-            const responce = promisifiedRequest(options);
+            const responce = await promisifiedRequest(options);
             const parsedBody = JSON.parse(responce.body);
             token = parsedBody.access_token;
             userSub2RefreshToken[payload.sub].expires_in = Date.now() + parsedBody.expires_in * 1000;
