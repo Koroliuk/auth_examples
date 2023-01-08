@@ -86,7 +86,6 @@ app.get('/userinfo', checkJwt, function (req, res) {
             message: JSON.stringify(message)
         });
     }
-    res.sendFile(path.join(__dirname + '/index.html'));
 });
 
 app.get('/logout', (req, res) => {
