@@ -23,6 +23,7 @@ async function refreshAccessToken(userId, userInfo) {
     const response = await promisifiedRequest(options);
     const parsedBody = JSON.parse(response.body);
     userInfo[userId].expiresIn = Date.now() + parsedBody.expires_in * 1000;
+    userInfo[userId].accessToken = parsedBody.access_token;
     return parsedBody.access_token;
 }
 
