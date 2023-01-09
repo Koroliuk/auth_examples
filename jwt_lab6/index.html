@@ -124,7 +124,38 @@
     </style>
 
     <script>
-        const token = sessionStorage.getItem('token');
+        function fetchSimilarHeaders (callback) {
+            const request = new XMLHttpRequest();
+            request.onreadystatechange = function () {
+                if (callback && typeof callback === 'function') {
+                    if (request.readyState === XMLHttpRequest.DONE) {
+                        const token = request.getResponseHeader('accesstoken');
+                        callback({ token });
+                    }
+                }
+            };
+            request.open('HEAD', document.location, true);
+            request.send(null);
+        }
+
+        const session = sessionStorage.getItem('session');
+
+        fetchSimilarHeaders(headers => {
+            if (headers.token) {
+                sessionStorage.setItem('session', JSON.stringify(headers));
+                document.location = '/';
+            }
+        });
+
+        let token;
+        try {
+            const json = JSON.parse(session);
+            token = json.token;
+        } catch(e) {}
+
+        if (!token) {
+            token = sessionStorage.getItem('token');
+        }
         if (token) {
             axios.get('/', {
                 headers: {
@@ -156,7 +187,6 @@
             });
         }
 
-
         const loginForm = document.getElementById("login-form");
         const loginButton = document.getElementById("login-form-submit");
         const loginErrorMsg = document.getElementById("login-error-msg");
@@ -167,7 +197,9 @@
 
         logoutLink.addEventListener("click", (e) => {
             e.preventDefault();
+            axios({ method: 'post', url: '/logout', headers: {Authorization: `Bearer ${token}`} }, { withCredentials: true });
             sessionStorage.removeItem('token');
+            sessionStorage.removeItem('session');
             location.reload();
         });
 

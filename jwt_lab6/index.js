@@ -67,55 +67,49 @@ app.get('/', async (req, res) => {
     const queryParams = req.query;
     if (queryParams && queryParams.code && queryParams.state &&
         queryParams.state.includes("login-example")) {
-        const {code} = queryParams;
-        const options = {
-            method: 'POST',
-            url: `https://dev-ciqz1vdq1irife3n.us.auth0.com/oauth/token`,
-            headers: {'content-type': 'application/x-www-form-urlencoded'},
-            form: {
-                grant_type: 'authorization_code',
-                client_id: `mdfALuYL914gp5lqPsoOWaIgh8gtMyXq`,
-                client_secret: `wRBB9kua92GDaDTNXsLPhUMSaKKwcu7UCYCtVvEIsVopLLBLGJzosBeWgAU-JEDx`,
-                code: code,
-                redirect_uri: 'http://localhost:3000'
-            }
-        };
-        const response = await promisifiedRequest(options);
-        const responce = JSON.parse(response.body);
-        const auth_info =  {
-            access_token: responce.access_token,
-            expires_in: responce.expires_in,
-            refresh_token: responce.refresh_token,
-        };
+        try {
+            const {code} = queryParams;
+            const options = {
+                method: 'POST',
+                url: `https://dev-ciqz1vdq1irife3n.us.auth0.com/oauth/token`,
+                headers: {'content-type': 'application/x-www-form-urlencoded'},
+                form: {
+                    grant_type: 'authorization_code',
+                    client_id: `mdfALuYL914gp5lqPsoOWaIgh8gtMyXq`,
+                    client_secret: `wRBB9kua92GDaDTNXsLPhUMSaKKwcu7UCYCtVvEIsVopLLBLGJzosBeWgAU-JEDx`,
+                    code: code,
+                    redirect_uri: 'http://localhost:3000'
+                }
+            };
+            const response = await promisifiedRequest(options);
+            const responce = JSON.parse(response.body);
+            const auth_info =  {
+                access_token: responce.access_token,
+                expires_in: responce.expires_in,
+                refresh_token: responce.refresh_token,
+            };
 
-        const ip = req.socket.remoteAddress;
-        const payload = await verifyToken(auth_info.access_token);
-        logger.info(`Successfully logged in, IP: ${ip}, user: ${auth_info.login}`);
-        const options1 = {
-            method: 'GET',
-            url: `https://dev-ciqz1vdq1irife3n.us.auth0.com/api/v2/users/${payload.sub}`,
-            headers: {
-                'authorization': `Bearer ${auth_info.access_token}`
-            }
-        };
-        await promisifiedRequest(options1);
-        const parsedBody = {}
-        parsedBody.refresh_token = auth_info.refresh_token;
-        parsedBody.expires_in = Date.now() + auth_info.expires_in * 1000;
-        userSub2RefreshToken[payload.sub] = parsedBody;
-        let token = auth_info.access_token;
-        res.setHeader('Authorization', `Bearer ${token}`);
+            const ip = req.socket.remoteAddress;
+            const payload = await verifyToken(auth_info.access_token);
+            logger.info(`Successfully logged in, IP: ${ip}, user: ${auth_info.login}`);
+            const parsedBody = {}
+            parsedBody.refresh_token = auth_info.refresh_token;
+            parsedBody.expires_in = Date.now() + auth_info.expires_in * 1000;
+            userSub2RefreshToken[payload.sub] = parsedBody;
+            let token = auth_info.access_token;
+            res.setHeader('AccessToken', token);
+        } catch {}
     } else {
         const {userInfo} = req;
         const {token} = req;
         if (token) {
             return res.json({
                 token: token,
-                username: userSub2RefreshToken[userInfo.sub].name
+                username: "sdfsdfsdfsdfsdfsd"
             });
         }
     }
-    res.sendFile(path.join(__dirname + '/index.html'));
+    return res.sendFile(path.join(__dirname + '/index.html'));
 });
 
 app.get('/userinfo', checkJwt, function (req, res) {
@@ -246,7 +240,8 @@ app.get('/login', async (req, res) => {
     config.clientId = "mdfALuYL914gp5lqPsoOWaIgh8gtMyXq";
     config.audience = "https://dev-ciqz1vdq1irife3n.us.auth0.com/api/v2/"
     config.state = "login-example";
-    const id = uuid.v4();
+    // const id = uuid.v4();
+    const id = "";
     res.redirect(`https://${config.domain}/authorize?response_type=code&client_id=${config.clientId}&redirect_uri=http://localhost:3000&scope=offline_access&audience=${config.audience}&state=${config.state}-${id}`);
 });
 
