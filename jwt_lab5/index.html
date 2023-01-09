@@ -165,26 +165,32 @@
         logoutLink.addEventListener("click", (e) => {
             e.preventDefault();
             sessionStorage.removeItem('token');
+            sessionStorage.removeItem('message');
             location.reload();
         });
 
         userInfoLink.addEventListener("click", (e) => {
             e.preventDefault();
+            const currValue = sessionStorage.getItem('message');
 
-            axios({
-                method: 'get',
-                url: '/userinfo',
-                headers: {
-                    'authorization': `Bearer ${token}`
-                }
-            }).then((response) => {
-                const token = response.data.token;
-                const { message } = response.data;
-                sessionStorage.setItem('token', token);
-                sessionStorage.setItem('message', message);
-
+            if (currValue == null) {
+                axios({
+                    method: 'get',
+                    url: '/userinfo',
+                    headers: {
+                        'authorization': `Bearer ${token}`
+                    }
+                }).then((response) => {
+                    const token = response.data.token;
+                    const { message } = response.data;
+                    sessionStorage.setItem('token', token);
+                    sessionStorage.setItem('message', message);
+                    location.reload();
+                });
+            } else {
+                sessionStorage.removeItem('message');
                 location.reload();
-            });
+            }
         });
 
         loginButton.addEventListener("click", (e) => {

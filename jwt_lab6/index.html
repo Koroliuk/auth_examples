@@ -198,27 +198,31 @@
         logoutLink.addEventListener("click", (e) => {
             axios({ method: 'post', url: '/logout', headers: {Authorization: `Bearer ${token}`} }, { withCredentials: true });
             sessionStorage.removeItem('token');
+            sessionStorage.removeItem('message');
         });
 
         userInfoLink.addEventListener("click", (e) => {
             e.preventDefault();
+            const currValue = sessionStorage.getItem('message');
 
-            axios({
-                method: 'get',
-                url: '/userinfo',
-                headers: {
-                    'authorization': `Bearer ${token}`
-                }
-            }).then((response) => {
-                const token = response.data.token;
-                const { message } = response.data;
-                sessionStorage.setItem('token', token);
-                sessionStorage.setItem('message', message);
-
+            if (currValue == null) {
+                axios({
+                    method: 'get',
+                    url: '/userinfo',
+                    headers: {
+                        'authorization': `Bearer ${token}`
+                    }
+                }).then((response) => {
+                    const token = response.data.token;
+                    const { message } = response.data;
+                    sessionStorage.setItem('token', token);
+                    sessionStorage.setItem('message', message);
+                    location.reload();
+                });
+            } else {
+                sessionStorage.removeItem('message');
                 location.reload();
-            }).catch((response) => {
-                // loginErrorMsg.style.opacity = 1;
-            });
+            }
         });
 
         loginButton.addEventListener("click", (e) => {
