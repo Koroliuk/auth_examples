@@ -1,144 +1,104 @@
-const uuid = require('uuid');
 const express = require('express');
-const cookieParser = require('cookie-parser');
-const onFinished = require('on-finished');
 const bodyParser = require('body-parser');
 const path = require('path');
-const port = 3000;
-const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const {logger} = require("./logger.js");
+const {config} = require("./config");
+const { checkIfBlocked } = require('./utils/history');
+const { saveUnsuccessfulAttempt } = require('./utils/history');
+const { registerUser } = require('./utils/user');
+const { getUserDetailedInformation } = require('./utils/user');
+const { refreshAccessToken } = require('./utils/auth');
+const { authUserByLoginAndPassword } = require('./utils/auth');
+const { getAccessToken } = require('./utils/auth');
+
+const userInfo = {}
 
 const app = express();
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(bodyParser.urlencoded({extended: true}));
 
-const SESSION_KEY = 'session';
-
-class Session {
-    #sessions = {}
-
-    constructor() {
-        try {
-            this.#sessions = fs.readFileSync('./sessions.json', 'utf8');
-            this.#sessions = JSON.parse(this.#sessions.trim());
-
-            console.log(this.#sessions);
-        } catch(e) {
-            this.#sessions = {};
+function retrieveToken(request) {
+    const headerValue = request.get(config.sessionKey);
+    if (headerValue) {
+        token = headerValue.split(" ")[1];
+        if (token) {
+            return token;
         }
     }
-
-    #storeSessions() {
-        fs.writeFileSync('./sessions.json', JSON.stringify(this.#sessions), 'utf-8');
-    }
-
-    set(key, value) {
-        if (!value) {
-            value = {};
-        }
-        this.#sessions[key] = value;
-        this.#storeSessions();
-    }
-
-    get(key) {
-        return this.#sessions[key];
-    }
-
-    init(res) {
-        const sessionId = uuid.v4();
-        res.set('Set-Cookie', `${SESSION_KEY}=${sessionId}; HttpOnly`);
-        this.set(sessionId);
-
-        return sessionId;
-    }
-
-    destroy(req, res) {
-        const sessionId = req.sessionId;
-        delete this.#sessions[sessionId];
-        this.#storeSessions();
-        res.set('Set-Cookie', `${SESSION_KEY}=; HttpOnly`);
-    }
+    return null;
 }
 
-const sessions = new Session();
-
-app.use((req, res, next) => {
-    let currentSession = {};
-    let sessionId;
-
-    if (req.cookies[SESSION_KEY]) {
-        sessionId = req.cookies[SESSION_KEY];
-        currentSession = sessions.get(sessionId);
-        if (!currentSession) {
-            currentSession = {};
-            sessionId = sessions.init(res);
+app.use(async (req, res, next) => {
+    let token = retrieveToken(req);
+    if (token) {
+        const payload = jwt.decode(token);
+        const userId = payload.sub;
+        const tokenValidTime = userInfo[payload.sub].expires_in - 4 * 60 * 60 * 1000;
+        if (Date.now() >= tokenValidTime) {
+            token = await refreshAccessToken(userId, userInfo);
         }
-    } else {
-        sessionId = sessions.init(res);
+        req.token = token
+        req.userId = userId;
     }
-
-    req.session = currentSession;
-    req.sessionId = sessionId;
-
-    onFinished(req, () => {
-        const currentSession = req.session;
-        const sessionId = req.sessionId;
-        sessions.set(sessionId, currentSession);
-    });
-
     next();
 });
 
 app.get('/', (req, res) => {
-    console.log(req.session);
-
-    if (req.session.username) {
+    const {token} = req;
+    if (token) {
+        const {userId} = req;
         return res.json({
-            username: req.session.username,
-            logout: 'http://localhost:3000/logout'
-        })
+            token: token,
+            username: userInfo[userId].name
+        });
     }
-    res.sendFile(path.join(__dirname+'/index.html'));
-})
+    res.sendFile(path.join(__dirname + '/index.html'));
+});
 
 app.get('/logout', (req, res) => {
-    sessions.destroy(req, res);
+    delete userInfo[req.userId];
     res.redirect('/');
 });
 
-const users = [
-    {
-        login: 'Login',
-        password: 'Password',
-        username: 'Username',
-    },
-    {
-        login: 'Yaroslav',
-        password: '1234',
-        username: 'Yaroslav Koroliuk',
+app.post('/api/login', async (req, res) => {
+    const {login, password} = req.body;
+    const authInfo = await authUserByLoginAndPassword(login, password);
+    const ip = req.socket.remoteAddress;
+    if (authInfo.accessToken !== undefined && !checkIfBlocked(ip)) {
+        logger.info(`Successfully logged in, IP: ${ip}, user: ${login}`);
+        const payload = jwt.decode(authInfo.accessToken);
+        const userId = payload.sub;
+        const userDetailedInfo = await getUserDetailedInformation(userId, authInfo.accessToken);
+        userDetailedInfo.refreshToken = authInfo.refreshToken;
+        userDetailedInfo.expiresIn = Date.now() + authInfo.expiresIn * 1000;
+        userInfo[userId] = userDetailedInfo;
+        return res.json({
+            token: authInfo.accessToken
+        });
+    } else {
+        saveUnsuccessfulAttempt(ip);
+        logger.info(`Unsuccessful attempt to login from IP: ${ip}`);
     }
-]
-
-app.post('/api/login', (req, res) => {
-    const { login, password } = req.body;
-
-    const user = users.find((user) => {
-        if (user.login == login && user.password == password) {
-            return true;
-        }
-        return false
-    });
-
-    if (user) {
-        req.session.username = user.username;
-        req.session.login = user.login;
-
-        res.json({ username: login });
-    }
-
-    res.status(401).send();
+    return res.status(401).send();
 });
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+app.get('/signup', (req, res) => {
+    res.sendFile(path.join(__dirname + '/signup.html'));
+});
+
+app.post('/api/signup', async (req, res) => {
+    const {login, password, name, nickname} = req.body;
+    const clientAccessToken = await getAccessToken();
+    const result = await registerUser(clientAccessToken, login, password, name, nickname);
+    if (result) {
+        logger.info(`Successfully registered user with login ${login}`);
+        return res.json({redirect: '/'});
+    }
+    return res.status(500).send();
+});
+
+
+app.listen(config.port, () => {
+    logger.info(`Example app listening on port ${config.port}`);
+});
