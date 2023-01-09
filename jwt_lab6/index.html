@@ -147,11 +147,11 @@
 
         let token;
         try {
-            const json = JSON.parse(session);
+            const json = JSON.parse(sessionStorage.getItem('token'));
             token = json.token;
         } catch(e) {}
 
-        if (!token) {
+        if (token === undefined || token === null || token === '') {
             token = sessionStorage.getItem('token');
         }
         if (token) {

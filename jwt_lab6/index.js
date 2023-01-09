@@ -80,10 +80,11 @@ app.get('/', async (req, res) => {
                 const userId = payload.sub;
                 const ip = req.socket.remoteAddress;
                 logger.info(`Successfully logged in, IP: ${ip}, user: ${userId}`);
-                userInfo[userId] = {
-                    retrieveToken: authInfo.refreshToken,
-                    expiresIn: Date.now() + authInfo.expiresIn * 1000
-                };
+                const userDetailedInfo = await getUserDetailedInformation(userId, authInfo.accessToken);
+                userDetailedInfo.refreshToken = authInfo.refreshToken;
+                userDetailedInfo.accessToken = authInfo.accessToken;
+                userDetailedInfo.expiresIn = Date.now() + authInfo.expiresIn * 1000;
+                userInfo[userId] = userDetailedInfo;
             }
         } catch {}
     } else {
@@ -157,8 +158,7 @@ app.post('/api/signup', async (req, res) => {
 
 app.get('/login', async (req, res) => {
     const state_id = uuid.v4();
-    // const state_id = "";
-    res.redirect(`https://${config.domain}/authorize?response_type=code&client_id=${config.clientId}&redirect_uri=http://localhost:3000&scope=offline_access&audience=${config.audience}&state=${config.state}${state_id}`);
+    res.redirect(`https://${config.domain}/authorize?response_type=code&client_id=${config.clientId}&redirect_uri=http://localhost:3000&scope=offline_access read:users read:current_user read:user_idp_tokens&audience=${config.audience}&state=${config.state}${state_id}`);
 });
 
 app.listen(config.port, () => {
