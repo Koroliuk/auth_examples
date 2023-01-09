@@ -41,7 +41,7 @@ app.use(async (req, res, next) => {
         const payload = await verifyToken(token);
         if (payload) {
             const userId = payload.sub;
-            const tokenValidTime = userInfo[payload.sub].expires_in - 4 * 60 * 60 * 1000;
+            const tokenValidTime = userInfo[payload.sub].expiresIn - 4 * 60 * 60 * 1000;
             if (Date.now() >= tokenValidTime) {
                 token = await refreshAccessToken(userId, userInfo);
             }
@@ -90,7 +90,6 @@ app.post('/api/login', async (req, res) => {
         const userId = payload.sub;
         const userDetailedInfo = await getUserDetailedInformation(userId, authInfo.accessToken);
         userDetailedInfo.refreshToken = authInfo.refreshToken;
-        userDetailedInfo.accessToken = authInfo.accessToken;
         userDetailedInfo.expiresIn = Date.now() + authInfo.expiresIn * 1000;
         userInfo[userId] = userDetailedInfo;
         return res.json({

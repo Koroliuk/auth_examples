@@ -44,7 +44,7 @@ app.use(async (req, res, next) => {
         const payload = checkTokenAndGetUserId(token);
         if (payload) {
             const userId = payload.sub;
-            const tokenValidTime = userInfo[payload.sub].expires_in - 4 * 60 * 60 * 1000;
+            const tokenValidTime = userInfo[payload.sub].expiresIn - 4 * 60 * 60 * 1000;
             if (Date.now() >= tokenValidTime) {
                 token = await refreshAccessToken(userId, userInfo);
             }

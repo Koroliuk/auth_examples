@@ -124,7 +124,7 @@
     </style>
 
     <script>
-        function fetchSimilarHeaders (callback) {
+        function getAccessTokenFromHeader(callback) {
             const request = new XMLHttpRequest();
             request.onreadystatechange = function () {
                 if (callback && typeof callback === 'function') {
@@ -138,11 +138,9 @@
             request.send(null);
         }
 
-        const session = sessionStorage.getItem('session');
-
-        fetchSimilarHeaders(headers => {
+        getAccessTokenFromHeader(headers => {
             if (headers.token) {
-                sessionStorage.setItem('session', JSON.stringify(headers));
+                sessionStorage.setItem('token', JSON.stringify(headers));
                 document.location = '/';
             }
         });
@@ -167,22 +165,24 @@
                 const { token } = response.data;
                 sessionStorage.setItem('token', token);
 
+                const mainHolder = document.getElementById("main-holder");
+                const loginHeader = document.getElementById("login-header");
+
+                loginForm.remove();
+                loginErrorMsg.remove();
+                loginHeader.remove();
+
+                logoutLink.style.opacity = 1;
+                userInfoLink.style.opacity = 1;
+                signupLink.style.opacity = 0;
+                ssoLink.style.opacity = 0;
+
                 if (username) {
-                    const mainHolder = document.getElementById("main-holder");
-                    const loginHeader = document.getElementById("login-header");
-
-                    loginForm.remove();
-                    loginErrorMsg.remove();
-                    loginHeader.remove();
-
-                    if (message !== undefined) {
-                        username += message
+                    let text = `Hello ${username}`;
+                    if (message !== null) {
+                        text = message;
                     }
-                    mainHolder.append(`Hello ${username}`);
-                    logoutLink.style.opacity = 1;
-                    userInfoLink.style.opacity = 1;
-                    signupLink.style.opacity = 0;
-                    ssoLink.style.opacity = 0;
+                    mainHolder.append(text);
                 }
             });
         }
@@ -196,11 +196,8 @@
         const ssoLink =  document.getElementById("sso");
 
         logoutLink.addEventListener("click", (e) => {
-            e.preventDefault();
             axios({ method: 'post', url: '/logout', headers: {Authorization: `Bearer ${token}`} }, { withCredentials: true });
             sessionStorage.removeItem('token');
-            sessionStorage.removeItem('session');
-            location.reload();
         });
 
         userInfoLink.addEventListener("click", (e) => {
