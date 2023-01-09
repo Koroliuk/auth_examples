@@ -143,17 +143,17 @@
                     loginErrorMsg.remove();
                     loginHeader.remove();
 
-                    if (message !== undefined) {
-                        username += message
+                    let text = `Hello ${username}`;
+                    if (message !== null) {
+                        text = message;
                     }
-                    mainHolder.append(`Hello ${username}`);
+                    mainHolder.append(text);
                     logoutLink.style.opacity = 1;
                     userInfoLink.style.opacity = 1;
                     signupLink.style.opacity = 0;
                 }
             });
         }
-
 
         const loginForm = document.getElementById("login-form");
         const loginButton = document.getElementById("login-form-submit");
@@ -184,8 +184,6 @@
                 sessionStorage.setItem('message', message);
 
                 location.reload();
-            }).catch((response) => {
-                // loginErrorMsg.style.opacity = 1;
             });
         });
 
