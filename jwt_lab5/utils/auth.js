@@ -8,7 +8,7 @@ const promisifiedRequest = promisify(request);
 
 
 async function refreshAccessToken(userId, userInfo) {
-    const refreshToken = userInfo[userId].refresh_token
+    const refreshToken = userInfo[userId].refreshToken
     const options = {
         method: 'POST',
         url: `https://${config.domain}/oauth/token`,
