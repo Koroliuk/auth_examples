@@ -10,14 +10,10 @@
 
     <body>
         <main id="main-holder">
-            <a href="/signup" id="signup">Sign Up</a>
-            <a href="/logout" id="logout">Logout</a>
-            <a href="/userinfo" id="userInfo">User detailed information</a>
-
             <h1 id="login-header">Login</h1>
 
             <div id="login-error-msg-holder">
-                <p id="login-error-msg">Invalid username <span id="error-msg-second-line">and/or password</span></p>
+            <p id="login-error-msg">Invalid username <span id="error-msg-second-line">and/or password</span></p>
             </div>
 
             <form id="login-form" action="/api/login" method="post">
@@ -43,14 +39,6 @@
             justify-items: center;
             align-items: center;
             background-color: #3a3a3a;
-        }
-
-        #logout {
-            opacity: 0;
-        }
-
-        #userInfo {
-            opacity: 0;
         }
 
         #main-holder {
@@ -123,76 +111,15 @@
     </style>
 
     <script>
-        const token = sessionStorage.getItem('token');
-        if (token) {
-            axios.get('/', {
-                headers: {
-                    'authorization': `Bearer ${token}`
-                }
-            }).then((response) => {
-                let { username } = response.data;
-                const message = sessionStorage.getItem('message');
-                const { token } = response.data;
-                sessionStorage.setItem('token', token);
-
-                if (username) {
-                    const mainHolder = document.getElementById("main-holder");
-                    const loginHeader = document.getElementById("login-header");
-
-                    loginForm.remove();
-                    loginErrorMsg.remove();
-                    loginHeader.remove();
-
-                    if (message !== undefined) {
-                        username += message
-                    }
-                    mainHolder.append(`Hello ${username}`);
-                    logoutLink.style.opacity = 1;
-                    userInfoLink.style.opacity = 1;
-                    signupLink.style.opacity = 0;
-                }
-            });
-        }
-
-
         const loginForm = document.getElementById("login-form");
         const loginButton = document.getElementById("login-form-submit");
         const loginErrorMsg = document.getElementById("login-error-msg");
-        const logoutLink =  document.getElementById("logout");
-        const userInfoLink =  document.getElementById("userInfo");
-        const signupLink =  document.getElementById("signup");
-
-        logoutLink.addEventListener("click", (e) => {
-            e.preventDefault();
-            sessionStorage.removeItem('token');
-            location.reload();
-        });
-
-        userInfoLink.addEventListener("click", (e) => {
-            e.preventDefault();
-
-            axios({
-                method: 'get',
-                url: '/userinfo',
-                headers: {
-                    'authorization': `Bearer ${token}`
-                }
-            }).then((response) => {
-                const token = response.data.token;
-                const { message } = response.data;
-                sessionStorage.setItem('token', token);
-                sessionStorage.setItem('message', message);
-
-                location.reload();
-            }).catch((response) => {
-                // loginErrorMsg.style.opacity = 1;
-            });
-        });
 
         loginButton.addEventListener("click", (e) => {
             e.preventDefault();
             const login = loginForm.login.value;
             const password = loginForm.password.value;
+
 
             axios({
                 method: 'post',
@@ -202,10 +129,11 @@
                     password
                 }
             }).then((response) => {
-                const token = response.data.token;
-                sessionStorage.setItem('token', token);
+                const { username } =  response.data;
+                alert(`You have successfully logged in, ${username}`);
                 location.reload();
             }).catch((response) => {
+                console.log(response);
                 loginErrorMsg.style.opacity = 1;
             });
         })
